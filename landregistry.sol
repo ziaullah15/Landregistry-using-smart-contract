@@ -9,8 +9,9 @@ contract LandRegistry{
         uint Area;
         string City;
         string State;
-        uint Landprice;
+        uint Landprice; 
         uint PropertyPID;
+        address currentOwner;
     }
 
     struct Buyer{
@@ -38,20 +39,21 @@ contract LandRegistry{
         string Designation;
     }
 
-    //mapping to store data on key values
-    mapping(uint => Landreg) public land;
+    //mapping to store data on key values and addresses
+    mapping(uint => Landreg) public landMapping;
     mapping(uint => LandInspector) public InspectorMapping;
     mapping(address => Buyer) public BuyerMapping;
     mapping(address => Seller) public SellerMapping;
-    mapping(address => bool) public RegisteredAddressMapping;
-    mapping(address => bool) public RegisteredSellersMapping;
-    mapping(address => bool) public RegisteredBuyersMapping;
-    mapping(address => bool) public SellerVerification;
-    mapping(address => bool) public SellerRejection;
-    mapping(address => bool) public BuyerVerification;
-    mapping(address => bool) public BuyerRejection;
-    mapping(uint => bool) public LandVerification;
-    mapping(uint => address) public LandOwner;
+    mapping(address => bool) private RegisteredAddressMapping;
+    mapping(address => bool) private RegisteredSellersMapping;
+    mapping(address => bool) private RegisteredBuyersMapping;
+    mapping(address => bool) private SellerVerificationMapping;
+    mapping(address => bool) private SellerRejectionMapping;
+    mapping(address => bool) private BuyerRejectionMapping;
+    mapping(address => bool) private BuyerVerificationMapping;
+    mapping(uint => bool) private LandVerificationMapping;
+   // mapping(uint => address) public LandOwner;
+    mapping(uint => bool) private PaymentReceived;
     
     /*Landreg[] private lands;
     Buyer[] private _buyer;
@@ -60,8 +62,8 @@ contract LandRegistry{
     
     //who deploy the contract will be the landinspector
     address public landinspector;
-    address[] public sellers;
-    address[] public buyers;
+    address[] private selleraddress;
+    address[] private buyeraddress;
 
     //public variables 
     uint public land_inspectors;
@@ -70,12 +72,11 @@ contract LandRegistry{
     uint public sellersCount;
     uint public buyersCount;
 
-    event Registration(address _registrationId);
-    event AddingLand(uint indexed _landId);
+    event Registration(address _id);
     event Verified(address _id);
     event Rejected(address _id);
 
-    constructor() public{
+    constructor() payable{
         landinspector = msg.sender;
     }
 
@@ -94,46 +95,46 @@ contract LandRegistry{
     //Seller verification function
     function verifySeller(address _sellerId) public Landins(){
 
-        SellerVerification[_sellerId] = true;
+        SellerVerificationMapping[_sellerId] = true;
         emit Verified(_sellerId);
     }
     //Seller rejection function
     function rejectSeller(address _sellerId) public Landins(){
         
-        SellerRejection[_sellerId] = true;
+        SellerRejectionMapping[_sellerId] = true;
         emit Rejected(_sellerId);
     }
     //Buyer verification function
     function verifyBuyer(address _buyerId) public Landins(){
         
-        BuyerVerification[_buyerId] = true;
+        BuyerVerificationMapping[_buyerId] = true;
         emit Verified(_buyerId);
     }
     //Buyer rejection function
     function rejectBuyer(address _buyerId) public Landins(){
 
-        BuyerRejection[_buyerId] = true;
+        BuyerRejectionMapping[_buyerId] = true;
         emit Rejected(_buyerId);
     }
     //Land verification function
     function verifyLand(uint landId) public Landins(){
-        LandVerification[landId] = true;
+        LandVerificationMapping[landId] = true;
     }
     //check weather the land is verified or not
     function isLandVerified(uint _id) public view returns (bool) {
-        if(LandVerification[_id]){
+        if(LandVerificationMapping[_id]){
             return true;
         }
     }
     //for verification of sellers or buyers
     function isVerified(address _id) public view returns (bool) {
-        if(SellerVerification[_id] || BuyerVerification[_id]){
+        if(SellerVerificationMapping[_id] || BuyerVerificationMapping[_id]){
             return true;
         }
     }
     //for rejected sellers or buyers
     function isRejected(address _id) public view returns (bool) {
-        if(SellerRejection[_id] || BuyerRejection[_id]){
+        if(SellerRejectionMapping[_id] || BuyerRejectionMapping[_id]){
             return true;
         }
     }
@@ -173,20 +174,20 @@ contract LandRegistry{
         //lands.push(Landreg(LandId, Area, City, state, Landprice, PropertyPID)); 
         require((isSellerReg(msg.sender)) && (isVerified(msg.sender)));  
          landsCount++;
-         land[LandId] = Landreg(LandId, Area, City, state, Landprice, PropertyPID);
-         LandOwner[landsCount] = msg.sender;
+         landMapping[LandId] = Landreg(LandId, Area, City, state, Landprice, PropertyPID, msg.sender);
+         //LandOwner[landsCount] = msg.sender;
     }
     
     function getLandCity(uint c) public view returns (string memory){
-        return land[c].City;
+        return landMapping[c].City;
     }
     
-    function getLandPrice(uint p) public view returns (uint){
-        return land[p].Landprice;
+    function getLandPrice(uint _landId) public view returns (uint){
+        return landMapping[_landId].Landprice;
     }
     
     function getLandArea(uint a) public view returns (uint){
-        return land[a].Area;
+        return landMapping[a].Area;
     }
     
     function LandSeller(address Id, string memory name, uint Age, string memory City, uint CNIC, string memory Email) public{
@@ -194,14 +195,12 @@ contract LandRegistry{
         RegisteredSellersMapping[Id] = true;
         SellerMapping[Id] = Seller(Id, name, Age, City, CNIC, Email);
         sellersCount++;
-        sellers.push(Id);
+        selleraddress.push(Id);
         emit Registration(msg.sender);
     }
 
        function updateSeller(address _id, string memory _name, uint _age, string memory _city, uint _CNIC, string memory _Email) public {
-        //require that Seller address is already registered
         require(RegisteredAddressMapping[msg.sender] && (SellerMapping[msg.sender].Id == msg.sender));
-
         SellerMapping[_id].Name = _name;
         SellerMapping[_id].Age = _age;
         SellerMapping[_id].City = _city;
@@ -211,7 +210,7 @@ contract LandRegistry{
     }
 
     function getSeller() public view returns( address [] memory ){
-        return(sellers);
+        return(selleraddress);
     }
     //function to register landbuyers
     function LandBuyer(address Id, string memory name, uint Age, string memory City, uint CNIC, string memory Email) public{
@@ -219,12 +218,11 @@ contract LandRegistry{
         RegisteredBuyersMapping[Id] = true;
         BuyerMapping[Id] = Buyer(Id, name, Age, City, CNIC, Email);
         buyersCount++;
-        buyers.push(Id);
+        buyeraddress.push(Id);
         emit Registration(msg.sender);
     }
 
     function updateBuyer(address _id, string memory _name, uint _age, string memory _city, uint _CNIC, string memory _Email) public {
-        //require that buyer address is already registered   
         require(RegisteredAddressMapping[msg.sender] && (BuyerMapping[msg.sender].Id == msg.sender));
         BuyerMapping[_id].Name = _name;
         BuyerMapping[_id].Age = _age;
@@ -234,8 +232,31 @@ contract LandRegistry{
 
     }
 
+    //uint landpayment;
+    address payable private add; 
+
+    /*function receives() public payable{
+        //0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2
+    }*/
+    
+    function Payment(uint _landId) public payable returns (bool){       
+         if(BuyerVerificationMapping[msg.sender] == true){
+            landMapping[_landId].currentOwner = add;
+            require(landMapping[_landId].Landprice == msg.value, "please pay the full price");
+            add.transfer(msg.value);
+            landMapping[_landId].currentOwner = msg.sender;
+        }
+        else{
+            return false;
+        }
+         /*if(PaymentReceived[_landId]){
+             return true;
+             LandOwner[_landId] = _Newowner;
+         }*/
+    }
+
     function getBuyer() public view returns( address [] memory ){
-        return(buyers);
+        return(buyeraddress);
     }
 
     function Landinspector(uint Id, string memory name, uint Age, string memory Designation) public{
@@ -253,10 +274,10 @@ contract LandRegistry{
     function getSellersCount() public view returns (uint) {
         return sellersCount;
     }
-    //function that change the owner of land after selling
+    //function that change the owner of land
     function LandOwnershipTransfer(uint _landId, address _newOwner) public Landins(){
-
-        LandOwner[_landId] = _newOwner;
+            landMapping[_landId].currentOwner = _newOwner;
+       
     }
 
 }
