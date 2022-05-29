@@ -43,16 +43,16 @@ contract LandRegistry{
     mapping(uint => LandInspector) public InspectorMapping;
     mapping(address => Buyer) public BuyerMapping;
     mapping(address => Seller) public SellerMapping;
-    mapping(address => bool) private RegisteredAddressMapping;
-    mapping(address => bool) private RegisteredSellersMapping;
-    mapping(address => bool) private RegisteredBuyersMapping;
-    mapping(address => bool) private SellerVerificationMapping;
-    mapping(address => bool) private SellerRejectionMapping;
-    mapping(address => bool) private BuyerRejectionMapping;
-    mapping(address => bool) private BuyerVerificationMapping;
-    mapping(uint => bool) private LandVerificationMapping;
+    mapping(address => bool) public RegisteredAddressMapping;
+    mapping(address => bool) public RegisteredSellersMapping;
+    mapping(address => bool) public RegisteredBuyersMapping;
+    mapping(address => bool) public SellerVerificationMapping;
+    mapping(address => bool) public SellerRejectionMapping;
+    mapping(address => bool) public BuyerRejectionMapping;
+    mapping(address => bool) public BuyerVerificationMapping;
+    mapping(uint => bool) public LandVerificationMapping;
    // mapping(uint => address) public LandOwner;
-    mapping(uint => bool) private PaymentReceived;
+   //mapping(uint => bool) public PaymentReceived;
     
     uint weiinether = 1000000000000000000;
     address public landinspector;
@@ -246,7 +246,7 @@ contract LandRegistry{
     function Payment(uint _landId) public payable returns (bool){       
          if(BuyerVerificationMapping[msg.sender] == true){
             landMapping[_landId].currentOwner = add;
-            require(landMapping[_landId].Landprice == msg.value, "please pay the exect price");
+            require(landMapping[_landId].Landprice == msg.value, "please pay the exact price");
             add.transfer(msg.value);
             landMapping[_landId].currentOwner = msg.sender;
         }
