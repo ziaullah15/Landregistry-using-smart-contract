@@ -3,7 +3,6 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 contract LandRegistry{
-   
     struct Landreg{
         uint LandId;
         uint Area;
@@ -55,18 +54,12 @@ contract LandRegistry{
    // mapping(uint => address) public LandOwner;
     mapping(uint => bool) private PaymentReceived;
     
-    /*Landreg[] private lands;
-    Buyer[] private _buyer;
-    Seller[] private _seller;
-    LandInspector[] private _landinspector;*/
-    
-    //who deploy the contract will be the landinspector
+    uint weiinether = 1000000000000000000;
     address public landinspector;
     address[] private selleraddress;
     address[] private buyeraddress;
 
     //public variables 
-    uint public land_inspectors;
     uint public landsCount;
     uint public inspectorsCount;
     uint public sellersCount;
@@ -80,7 +73,7 @@ contract LandRegistry{
         landinspector = msg.sender;
     }
 
-    //modifier for Landinspector address
+    //modifier for Landinspector address who deploy the contract will be the landinspector
     modifier Landins(){
         require(msg.sender == landinspector , "");
         _;
@@ -88,56 +81,64 @@ contract LandRegistry{
 
     //Adding Landinspectors
     function addLandInspector(string memory _name, uint _age, string memory _designation) private {
-        land_inspectors++;
         inspectorsCount++;
-        InspectorMapping[land_inspectors] = LandInspector(land_inspectors, _name, _age, _designation);
+        InspectorMapping[inspectorsCount] = LandInspector(inspectorsCount, _name, _age, _designation);
     }
+    
     //Seller verification function
     function verifySeller(address _sellerId) public Landins(){
 
         SellerVerificationMapping[_sellerId] = true;
         emit Verified(_sellerId);
     }
+    
     //Seller rejection function
     function rejectSeller(address _sellerId) public Landins(){
         
         SellerRejectionMapping[_sellerId] = true;
         emit Rejected(_sellerId);
     }
+    
     //Buyer verification function
     function verifyBuyer(address _buyerId) public Landins(){
         
         BuyerVerificationMapping[_buyerId] = true;
         emit Verified(_buyerId);
     }
+    
     //Buyer rejection function
     function rejectBuyer(address _buyerId) public Landins(){
 
         BuyerRejectionMapping[_buyerId] = true;
         emit Rejected(_buyerId);
     }
+    
     //Land verification function
     function verifyLand(uint landId) public Landins(){
         LandVerificationMapping[landId] = true;
     }
+    
     //check weather the land is verified or not
     function isLandVerified(uint _id) public view returns (bool) {
         if(LandVerificationMapping[_id]){
             return true;
         }
     }
+    
     //for verification of sellers or buyers
     function isVerified(address _id) public view returns (bool) {
         if(SellerVerificationMapping[_id] || BuyerVerificationMapping[_id]){
             return true;
         }
     }
+    
     //for rejected sellers or buyers
     function isRejected(address _id) public view returns (bool) {
         if(SellerRejectionMapping[_id] || BuyerRejectionMapping[_id]){
             return true;
         }
     }
+    
     //check the seller is registered or not
     function isSellerReg(address _id) public view returns (bool) {
         if(RegisteredSellersMapping[_id]){
@@ -161,6 +162,7 @@ contract LandRegistry{
             return true;
         }
     }
+    
     //function to check registered addresses
     function isAddressReg(address _id) public view returns (bool) {
         if(RegisteredAddressMapping[_id]){
@@ -172,7 +174,8 @@ contract LandRegistry{
     //Land registeration by verified seller
     function RegisterLand(uint LandId , uint Area, string memory City, string memory state, uint Landprice, uint PropertyPID) public{
         //lands.push(Landreg(LandId, Area, City, state, Landprice, PropertyPID)); 
-        require((isSellerReg(msg.sender)) && (isVerified(msg.sender)));  
+        require((isSellerReg(msg.sender)) && (isVerified(msg.sender))); 
+         Landprice = Landprice * weiinether; 
          landsCount++;
          landMapping[LandId] = Landreg(LandId, Area, City, state, Landprice, PropertyPID, msg.sender);
          //LandOwner[landsCount] = msg.sender;
@@ -199,7 +202,7 @@ contract LandRegistry{
         emit Registration(msg.sender);
     }
 
-       function updateSeller(address _id, string memory _name, uint _age, string memory _city, uint _CNIC, string memory _Email) public {
+    function updateSeller(address _id, string memory _name, uint _age, string memory _city, uint _CNIC, string memory _Email) public {
         require(RegisteredAddressMapping[msg.sender] && (SellerMapping[msg.sender].Id == msg.sender));
         SellerMapping[_id].Name = _name;
         SellerMapping[_id].Age = _age;
@@ -212,6 +215,7 @@ contract LandRegistry{
     function getSeller() public view returns( address [] memory ){
         return(selleraddress);
     }
+    
     //function to register landbuyers
     function LandBuyer(address Id, string memory name, uint Age, string memory City, uint CNIC, string memory Email) public{
         RegisteredAddressMapping[Id] = true;
@@ -242,13 +246,14 @@ contract LandRegistry{
     function Payment(uint _landId) public payable returns (bool){       
          if(BuyerVerificationMapping[msg.sender] == true){
             landMapping[_landId].currentOwner = add;
-            require(landMapping[_landId].Landprice == msg.value, "please pay the full price");
+            require(landMapping[_landId].Landprice == msg.value, "please pay the exect price");
             add.transfer(msg.value);
             landMapping[_landId].currentOwner = msg.sender;
         }
         else{
             return false;
         }
+    
          /*if(PaymentReceived[_landId]){
              return true;
              LandOwner[_landId] = _Newowner;
@@ -261,19 +266,9 @@ contract LandRegistry{
 
     function Landinspector(uint Id, string memory name, uint Age, string memory Designation) public{
         InspectorMapping[Id] = LandInspector(Id, name, Age, Designation);
+        inspectorsCount++;
     }
 
-    function getLandsCount() public view returns (uint) {
-        return landsCount;
-    }
-
-    function getBuyersCount() public view returns (uint) {
-        return buyersCount;
-    }
-
-    function getSellersCount() public view returns (uint) {
-        return sellersCount;
-    }
     //function that change the owner of land
     function LandOwnershipTransfer(uint _landId, address _newOwner) public Landins(){
             landMapping[_landId].currentOwner = _newOwner;
