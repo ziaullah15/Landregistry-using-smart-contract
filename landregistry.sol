@@ -21,6 +21,7 @@ contract LandRegistry{
         uint CNIC;
         string Email;
     }
+    
 
     struct Seller{
         address Id;
@@ -30,6 +31,7 @@ contract LandRegistry{
         uint CNIC;
         string Email;
     }
+    
 
     struct LandInspector{
         uint Id;
@@ -37,13 +39,12 @@ contract LandRegistry{
         uint Age;
         string Designation;
     }
-
+    
     //mapping to store data on key values and addresses
     mapping(uint => Landreg) public landMapping;
-    mapping(uint => LandInspector) public InspectorMapping;
     mapping(address => Buyer) public BuyerMapping;
     mapping(address => Seller) public SellerMapping;
-    mapping(address => bool) public RegisteredAddressMapping;
+    mapping(uint => LandInspector) public InspectorMapping;
     mapping(address => bool) public RegisteredSellersMapping;
     mapping(address => bool) public RegisteredBuyersMapping;
     mapping(address => bool) public SellerVerificationMapping;
@@ -51,8 +52,7 @@ contract LandRegistry{
     mapping(address => bool) public BuyerRejectionMapping;
     mapping(address => bool) public BuyerVerificationMapping;
     mapping(uint => bool) public LandVerificationMapping;
-   // mapping(uint => address) public LandOwner;
-   mapping(uint => bool) public PaymentReceived;
+    mapping(uint => bool) public PaymentReceived;
     
     uint weiinether = 1000000000000000000;
     address public landinspector;
@@ -68,6 +68,7 @@ contract LandRegistry{
     event Registration(address _id);
     event Verified(address _id);
     event Rejected(address _id);
+    event verifiedland(uint _id);
 
     constructor() payable{
         landinspector = msg.sender;
@@ -81,8 +82,8 @@ contract LandRegistry{
 
     //Adding Landinspectors
     function addLandInspector(string memory _name, uint _age, string memory _designation) private {
-        inspectorsCount++;
         InspectorMapping[inspectorsCount] = LandInspector(inspectorsCount, _name, _age, _designation);
+        inspectorsCount++;
     }
     
     //Seller verification function
@@ -116,6 +117,7 @@ contract LandRegistry{
     //Land verification function
     function verifyLand(uint landId) public Landins(){
         LandVerificationMapping[landId] = true;
+        emit verifiedland(landId);
     }
     
     //check weather the land is verified or not
@@ -163,13 +165,6 @@ contract LandRegistry{
         }
     }
     
-    //function to check registered addresses
-    function isAddressReg(address _id) public view returns (bool) {
-        if(RegisteredAddressMapping[_id]){
-            return true;
-        }
-    }
-
     
     //Land registeration by verified seller
     function RegisterLand(uint LandId , uint Area, string memory City, string memory state, uint Landprice, uint PropertyPID) public{
@@ -178,7 +173,6 @@ contract LandRegistry{
         Landprice = Landprice * weiinether; 
          landsCount++;
          landMapping[LandId] = Landreg(LandId, Area, City, state, Landprice, PropertyPID, msg.sender);
-         //LandOwner[landsCount] = msg.sender;
     }
     
     function getLandCity(uint c) public view returns (string memory){
@@ -195,7 +189,6 @@ contract LandRegistry{
     
     function LandSeller(address Id, string memory name, uint Age, string memory City, uint CNIC, string memory Email) public{
         require(RegisteredBuyersMapping[Id] == false && RegisteredBuyersMapping[msg.sender] == false, "you can't be register as a seller");
-        RegisteredAddressMapping[Id] = true;
         RegisteredSellersMapping[Id] = true;
         SellerMapping[Id] = Seller(msg.sender, name, Age, City, CNIC, Email);
         sellersCount++;
@@ -204,7 +197,7 @@ contract LandRegistry{
     }
 
     function updateSeller(address _id, string memory _name, uint _age, string memory _city, uint _CNIC, string memory _Email) public {
-        require(RegisteredAddressMapping[msg.sender] && (SellerMapping[msg.sender].Id == msg.sender));
+        require(SellerMapping[msg.sender].Id == msg.sender);
         SellerMapping[_id].Name = _name;
         SellerMapping[_id].Age = _age;
         SellerMapping[_id].City = _city;
@@ -220,7 +213,7 @@ contract LandRegistry{
     //function to register landbuyers
     function LandBuyer(address Id, string memory name, uint Age, string memory City, uint CNIC, string memory Email) public{
         require(RegisteredSellersMapping[Id] == false && RegisteredSellersMapping[msg.sender] == false, "please enter another address");
-        RegisteredAddressMapping[Id] = true;
+        //RegisteredAddressMapping[Id] = true;
         RegisteredBuyersMapping[Id] = true;
         BuyerMapping[Id] = Buyer(msg.sender, name, Age, City, CNIC, Email);
         buyersCount++;
@@ -229,7 +222,7 @@ contract LandRegistry{
     }
 
     function updateBuyer(address _id, string memory _name, uint _age, string memory _city, uint _CNIC, string memory _Email) public {
-        require(RegisteredAddressMapping[msg.sender] && (BuyerMapping[msg.sender].Id == msg.sender));
+        require(BuyerMapping[msg.sender].Id == msg.sender);
         BuyerMapping[_id].Name = _name;
         BuyerMapping[_id].Age = _age;
         BuyerMapping[_id].City = _city;
@@ -244,8 +237,8 @@ contract LandRegistry{
     
     function Payment(uint _landId) public payable returns (bool){       
         //landMapping[_landId].currentOwner = add;
-        require(BuyerVerificationMapping[msg.sender] == true);
-        if(BuyerVerificationMapping[msg.sender] == true){
+        require(BuyerVerificationMapping[msg.sender] == true && LandVerificationMapping[_landId] == true);
+        if(BuyerVerificationMapping[msg.sender] == true && LandVerificationMapping[_landId] == true){
             require(landMapping[_landId].Landprice == msg.value , "please pay the exact price");
             payable(landMapping[_landId].currentOwner).transfer(msg.value);
             landMapping[_landId].currentOwner = msg.sender;
