@@ -212,8 +212,7 @@ contract LandRegistry{
     
     //function to register landbuyers
     function LandBuyer(address Id, string memory name, uint Age, string memory City, uint CNIC, string memory Email) public{
-        require(RegisteredSellersMapping[Id] == false && RegisteredSellersMapping[msg.sender] == false, "please enter another address");
-        //RegisteredAddressMapping[Id] = true;
+        require(RegisteredSellersMapping[Id] == false && RegisteredSellersMapping[msg.sender] == false, "you cant be register as a buyer");
         RegisteredBuyersMapping[Id] = true;
         BuyerMapping[Id] = Buyer(msg.sender, name, Age, City, CNIC, Email);
         buyersCount++;
