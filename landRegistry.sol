@@ -54,7 +54,7 @@ contract LandRegistry{
     mapping(uint => bool) public LandVerificationMapping;
     mapping(uint => bool) public PaymentReceived;
     
-    uint weiinether = 1000000000000000000;
+    uint inEther = 1000000000000000000;
     address public landinspector;
     address[] private selleraddress;
     address[] private buyeraddress;
@@ -170,7 +170,7 @@ contract LandRegistry{
     function RegisterLand(uint LandId , uint Area, string memory City, string memory state, uint Landprice, uint PropertyPID) public{
         //lands.push(Landreg(LandId, Area, City, state, Landprice, PropertyPID)); 
         require((isSellerReg(msg.sender)) && (isVerified(msg.sender))); 
-        Landprice = Landprice * weiinether; 
+        Landprice = Landprice * inEther; 
          landsCount++;
          landMapping[LandId] = Landreg(LandId, Area, City, state, Landprice, PropertyPID, msg.sender);
     }
